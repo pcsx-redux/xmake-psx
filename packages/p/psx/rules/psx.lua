@@ -25,10 +25,13 @@ local function add_clang_flags_to(target, cross, iorunv)
 	end
 end
 
+local parent_dir = path.directory(os.scriptdir())
+
 rule("psx", function()
 	before_config(function(target)
 		target:set("plat", "psx")
 		target:set("arch", "mipsel")
+		target:set("extension", ".elf")
 
 		import("lib.detect.find_program")
 		local arch_possibilities = {"mipsel", "mips"}
@@ -115,9 +118,8 @@ rule("psx", function()
 		target:add("ldflags", "-nodefaultlibs", "-no-pie", "-Wl,--gc-sections", {force = true})
 		target:add("asflags", "-xassembler-with-cpp", "-msoft-float", {force = true})
 
-		local parent = path.directory(os.scriptdir())
-		target:add("files", path.join(parent, "files/**.s"))
-		target:add("ldflags", "-T " .. path.join(parent, "files/psx.ld"), {force = true})
+		target:add("files", path.join(parent_dir, "files/**.s"))
+		target:add("ldflags", "-T " .. path.join(parent_dir, "files/psx.ld"), {force = true})
 		if target:has_tool("ld", "clang") or target:has_tool("ld", "clang++") then
 			target:add("ldflags", "-fuse-ld=lld", "-Wl,-mllvm,-mattr=+noabicalls", "-Wl,-mllvm,-mattr=+soft-float", {force = true})
 		end
@@ -187,5 +189,18 @@ rule("psx", function()
 			target:add("cxflags", v, {force = true})
 			target:add("ldflags", v, {force = true})
 		end
+	end)
+
+	after_link(function(target)
+		local elf = target:targetfile()
+		local psexe
+		if elf:endswith(".elf") then
+			psexe = elf:sub(1, -5)
+		else
+			psexe = elf
+		end
+		psexe = psexe .. ".psexe"
+		os.runv("python", {path.join(parent_dir, "files/convertExecutable.py"), elf, psexe})
+		print("converted into " .. psexe)
 	end)
 end)
