@@ -16,7 +16,6 @@
 .set target_ptr, $s5
 .set tmp, $s6
 
-.weak _start
 _start:
 	// backup argc, argv and $ra
 	move bak0, $a0
@@ -87,7 +86,6 @@ _start:
 	b .Lloop_forever
 
 .global atexit
-.weak atexit
 atexit:
 	jr $ra
 	nop
