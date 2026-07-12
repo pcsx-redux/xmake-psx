@@ -18,7 +18,6 @@ local function add_clang_flags_to(target, cross, iorunv)
 
 	-- clang's freestanding support is poor, so make it use gcc's standard headers
 	local _, stderr = iorunv(cross .. "-g++", {"-ffreestanding", "-xc++", "/dev/null", "-E", "-Wp,-v"})
-	print(stderr)
 	for _, line in ipairs(stderr:split("\n")) do
 		if line:startswith(" ") then
 			target:add("sysincludedirs", line:trim())
