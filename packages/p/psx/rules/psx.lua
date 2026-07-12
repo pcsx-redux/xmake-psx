@@ -1,3 +1,5 @@
+local parent_dir = path.directory(os.scriptdir())
+
 -- clang-only flags
 -- for some reason, this function can't see os.iorunv, so i passed it through an argument
 local function add_clang_flags_to(target, cross, iorunv)
@@ -17,15 +19,13 @@ local function add_clang_flags_to(target, cross, iorunv)
 	target:add("defines", "SCRATCHPAD=")
 
 	-- clang's freestanding support is poor, so make it use gcc's standard headers
-	local _, stderr = iorunv(cross .. "-g++", {"-ffreestanding", "-xc++", "/dev/null", "-E", "-Wp,-v"})
+	local _, stderr = iorunv(cross .. "-g++", {"-ffreestanding", "-xc++", path.join(parent_dir, "files/empty.c"), "-E", "-Wp,-v"})
 	for _, line in ipairs(stderr:split("\n")) do
 		if line:startswith(" ") then
 			target:add("sysincludedirs", line:trim())
 		end
 	end
 end
-
-local parent_dir = path.directory(os.scriptdir())
 
 rule("psx", function()
 	before_config(function(target)
