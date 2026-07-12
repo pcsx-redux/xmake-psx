@@ -1,4 +1,4 @@
-local parent_dir = path.directory(os.scriptdir())
+local psxdir = os.scriptdir()
 
 -- clang-only flags
 -- for some reason, this function can't see os.iorunv, so i passed it through an argument
@@ -19,7 +19,7 @@ local function add_clang_flags_to(target, cross, iorunv)
 	target:add("defines", "SCRATCHPAD=")
 
 	-- clang's freestanding support is poor, so make it use gcc's standard headers
-	local _, stderr = iorunv(cross .. "-g++", {"-ffreestanding", "-xc++", path.join(parent_dir, "files/empty.c"), "-E", "-Wp,-v"})
+	local _, stderr = iorunv(cross .. "-g++", {"-ffreestanding", "-xc++", path.join(psxdir, "files/empty.c"), "-E", "-Wp,-v"})
 	for _, line in ipairs(stderr:split("\n")) do
 		if line:startswith(" ") then
 			target:add("sysincludedirs", line:trim())
@@ -27,7 +27,7 @@ local function add_clang_flags_to(target, cross, iorunv)
 	end
 end
 
-rule("psx", function()
+rule("psx")
 	before_config(function(target)
 		target:set("plat", "psx")
 		target:set("arch", "mipsel")
@@ -118,8 +118,13 @@ rule("psx", function()
 		target:add("ldflags", "-nodefaultlibs", "-no-pie", "-Wl,--gc-sections", {force = true})
 		target:add("asflags", "-xassembler-with-cpp", "-msoft-float", {force = true})
 
-		target:add("files", path.join(parent_dir, "files/**.s"))
-		target:add("ldflags", "-T " .. path.join(parent_dir, "files/psx.ld"), {force = true})
+		local use_crt = target:values("use_crt")
+		if use_crt == nil then use_crt = true end
+		if use_crt then
+			target:add("files", path.join(psxdir, "files/crt/*.s"))
+		end
+		local ldscript = target:values("ldscript")
+		target:add("ldflags", "-T " .. (ldscript or path.join(psxdir, "files/psx.ld")), {force = true})
 		if target:has_tool("ld", "clang") or target:has_tool("ld", "clang++") then
 			target:add("ldflags", "-fuse-ld=lld", "-Wl,-mllvm,-mattr=+noabicalls", "-Wl,-mllvm,-mattr=+soft-float", {force = true})
 		end
@@ -190,17 +195,3 @@ rule("psx", function()
 			target:add("ldflags", v, {force = true})
 		end
 	end)
-
-	after_link(function(target)
-		local elf = target:targetfile()
-		local psexe
-		if elf:endswith(".elf") then
-			psexe = elf:sub(1, -5)
-		else
-			psexe = elf
-		end
-		psexe = psexe .. ".psexe"
-		os.runv("python", {path.join(parent_dir, "files/convertExecutable.py"), elf, psexe})
-		print("converted into " .. psexe)
-	end)
-end)
