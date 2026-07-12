@@ -16,7 +16,7 @@
 .set target_ptr, $s5
 .set tmp, $s6
 
-.weak atexit
+.weak _start
 _start:
 	// backup argc, argv and $ra
 	move bak0, $a0
