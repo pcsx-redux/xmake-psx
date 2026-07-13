@@ -14,13 +14,13 @@
 .weak memset
 memset:
 	beqz length, .Lreturn
-	addu target, dst, length // branch delay slot
+	addu target, dst, length # branch delay slot
 
 .Lloop:
 	addiu dst, 1
 	bne dst, target, .Lloop
-	sb filler, -1(dst) // branch delay slot
+	sb filler, -1(dst) # branch delay slot
 
 .Lreturn:
 	jr $ra
-	move return, dst // branch delay slot
+	move return, dst # branch delay slot

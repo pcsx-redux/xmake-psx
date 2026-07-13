@@ -16,6 +16,6 @@ strlen:
 .Lloop:
 	lb tmp, (str)
 	bnez tmp, .Lloop
-	addiu return, 1 // branch delay slot
+	addiu return, 1 # branch delay slot
 	jr $ra
-	addiu return, -1 // branch delay slot
+	addiu return, -1 # branch delay slot

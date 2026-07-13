@@ -122,7 +122,7 @@ rule("psx", function()
 		target:add("cxxflags", "-fno-exceptions", "-fno-rtti", "-fno-unwind-tables", "-fno-threadsafe-statics", "-fno-use-cxa-atexit")
 		target:add("defines", "__STDC_NO_ATOMICS__")
 		add_flags_to(target, {"-nodefaultlibs", "-no-pie", "-Wl,--gc-sections"})
-		target:add("asflags", "-xassembler-with-cpp", "-msoft-float", {force = true})
+		target:add("asflags", "-msoft-float", {force = true})
 
 		if not target:values("no_crt") then
 			target:add("files", path.join(psxdir, "files/crt/*.s"))
