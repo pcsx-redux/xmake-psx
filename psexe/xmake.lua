@@ -267,7 +267,6 @@ local function get_binary_dep(target)
 	for index, value in ipairs(deps) do
 		if type(value) == "string" then
 			local dep_target = target:dep(value)
-			print("checking dependency " .. value)
 			if not dep_target then
 				return nil, "psx.psexe target dependency '" .. value .. "' does not exist"
 			end
@@ -308,6 +307,9 @@ rule("psx.psexe", function()
 		target:set("basename", binary:basename())
 	end)
 	on_build(function(target)
+		import("core.project.depend")
+
+		os.mkdir(target:targetdir())
 		local binary, err = get_binary_dep(target)
 		if not binary then
 			raise("psx.psexe target error: " .. err)
@@ -320,10 +322,12 @@ rule("psx.psexe", function()
 			input = binary:targetfile(),
 			output = target:targetfile(),
 		}
-		local ok, err = convert(io, opts)
-		if not ok then
-			raise("error while converting to psexe: " .. err)
-		end
-		print("converted binary '" .. opts.input .. "' to psexe '" .. opts.output .. "'")
+		depend.on_changed(function ()
+			print("psexe conversion of %s to %s", opts.input, opts.output)
+			local ok, err = convert(io, opts)
+			if not ok then
+				raise("error while converting to psexe: " .. err)
+			end
+		end, {files = opts.input})
 	end)
 end)
