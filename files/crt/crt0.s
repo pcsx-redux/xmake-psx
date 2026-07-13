@@ -1,8 +1,8 @@
 .set reorder
 
-.global _preinit_array_start, _preinit_array_end
-.global _init_array_start, _init_array_end
-.global _fini_array_start, _fini_array_end
+.global __preinit_array_start, __preinit_array_end
+.global __init_array_start, __init_array_end
+.global __fini_array_start, __fini_array_end
 .global _bss_start, _bss_end
 .global _gp
 .global main
@@ -16,6 +16,7 @@
 .set target_ptr, $s5
 .set tmp, $s6
 
+.section .text.startup._start
 .weak _start
 _start:
 	# backup argc, argv and $ra
@@ -55,12 +56,12 @@ _start:
 .Lscratchpad_finish:
 
 	# call all pre-main functions
-	la current_ptr, _preinit_array_start
-	la target_ptr, _preinit_array_end
+	la current_ptr, __preinit_array_start
+	la target_ptr, __preinit_array_end
 	jal .Lcall_all_in_list
 
-	la current_ptr, _init_array_start
-	la target_ptr, _init_array_end
+	la current_ptr, __init_array_start
+	la target_ptr, __init_array_end
 	jal .Lcall_all_in_list
 
 	# actually call main
@@ -69,8 +70,8 @@ _start:
 	jal main
 
 	# global destructors
-	la current_ptr, _fini_array_start
-	la target_ptr, _fini_array_end
+	la current_ptr, __fini_array_start
+	la target_ptr, __fini_array_end
 	jal .Lcall_all_in_list
 
 	# this will most likely crash the console
@@ -91,9 +92,3 @@ _start:
 
 .Lloop_forever:
 	b .Lloop_forever
-
-.global atexit
-.weak atexit
-atexit:
-	jr $ra
-	nop

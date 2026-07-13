@@ -268,7 +268,7 @@ rule("psx.psexe", function()
 			local output = target:targetfile():gsub("%.elf$", psexe)
 			local opts = {
 				region_str = target:values("psexe_region_str") or "", -- useless, not checked by the bios
-				set_sp = target:values("psexe_sp") or 0, -- generally useless, sp will be overridden by system.cnf and crt0
+				set_sp = target:values("psexe_sp") or 0x807ffff0, -- generally useless, sp will be overridden by system.cnf and crt0
 				set_gp = target:values("psexe_gp") or 0, -- generally useless, gp will be overridden by crt0
 				strip_read_only = target:values("psexe_strip_read_only") or false, -- unknown purpose
 				input = target:targetfile(),

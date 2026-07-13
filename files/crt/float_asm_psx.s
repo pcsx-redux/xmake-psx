@@ -20,6 +20,8 @@
 .set lzcs, $30
 .set lzcr, $31
 
+.section .text._float
+
 # operation: q20.12 -> float
 # 3 cycles if a == 0
 # 16 cycles if a != 0

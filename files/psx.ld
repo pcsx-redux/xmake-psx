@@ -1,4 +1,4 @@
-/* linker script to make an elf for PSX */
+/* linker script for psx */
 /* credit: https://github.com/spicyjpeg/ps1-bare-metal/blob/main/cmake/executable.ld */
 
 ENTRY(_start)
@@ -23,19 +23,19 @@ SECTIONS {
 		*(.rodata .rodata.* .gnu.linkonce.r.*)
 
 		. = ALIGN(4);
-		_preinit_array_start = .;
+		__preinit_array_start = .;
 		KEEP(*(.preinit_array))
-		_preinit_array_end = .;
+		__preinit_array_end = .;
 
-		_init_array_start = .;
+		__init_array_start = .;
 		KEEP(*(SORT(.init_array.*) SORT(.ctors.*)))
 		KEEP(*(.init_array .ctors))
-		_init_array_end = .;
+		__init_array_end = .;
 
-		_fini_array_start = .;
+		__fini_array_start = .;
 		KEEP(*(SORT(.fini_array.*) SORT(.dtors.*)))
 		KEEP(*(.fini_array .dtors))
-		_fini_array_end = .;
+		__fini_array_end = .;
 	} > MAIN_RAM
 
 	. = ALIGN(16);

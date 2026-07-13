@@ -10,6 +10,7 @@
 .set target, $v1
 .set tmp, $at
 
+.section .text.memset
 .global memset
 .weak memset
 memset:

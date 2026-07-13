@@ -8,6 +8,7 @@
 .set tmp, $at
 .set tmp2, $v1
 
+.section .text.strlen
 .global strlen
 .weak strlen
 strlen:
