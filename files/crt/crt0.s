@@ -16,16 +16,23 @@
 .set target_ptr, $s5
 .set tmp, $s6
 
+.weak _start
 _start:
 	// backup argc, argv and $ra
 	move bak0, $a0
 	move bak1, $a1
 	move ra_backup, $ra
-	la $gp, _gp // load up $gp
 
 	// allow pcsx-redux functions to not crash
 	lui $v0, 9
 	sw $v0, 0x1F80101C
+
+	// set $gp to the address provided by the linker
+	la $gp, _gp
+
+	// set $sp to 8MB - 16 bytes
+	// this allows you to use 8MB if you have it, and is harmless if you don't
+	li $sp, 0x807ffff0
 
 	// clear bss region
 	la current_ptr, _bss_start
@@ -86,6 +93,7 @@ _start:
 	b .Lloop_forever
 
 .global atexit
+.weak atexit
 atexit:
 	jr $ra
 	nop

@@ -1,20 +1,26 @@
+includes("psexe")
+
 local psxdir = os.scriptdir()
+
+-- adds flags as both cxflags and ldflags
+local function add_flags_to(target, flags)
+	for _, flag in ipairs(flags) do
+		target:add("cxflags", flag, {force = true})
+		target:add("ldflags", flag, {force = true})
+	end
+end
 
 -- clang-only flags
 -- for some reason, this function can't see os.iorunv, so i passed it through an argument
 local function add_clang_flags_to(target, cross, iorunv)
-	local flags = {
+	add_flags_to(target, {
 		"--target=mipsel-none-elf", "-march=mips1", "-G32", "-mfloat-abi=soft",
 		"-B" .. cross .. "-", "-fno-integrated-as",
 		"-falign-loops=1", "-falign-functions=16",
 		"-nostdinc", "-nostdinc++",
 		-- clang doesn't support -mdivide-breaks, it can only use the 'teq' instruction which is not supported on PS1
 		"-mno-check-zero-division",
-	}
-	for _, value in ipairs(flags) do
-		target:add("cxflags", value, {force = true})
-		target:add("ldflags", value, {force = true})
-	end
+	})
 	-- clang appears to assume loads from scratchpad values are always 0?
 	target:add("defines", "SCRATCHPAD=")
 
@@ -27,7 +33,9 @@ local function add_clang_flags_to(target, cross, iorunv)
 	end
 end
 
-rule("psx")
+rule("psx", function()
+	add_deps("psx.psexe")
+
 	before_config(function(target)
 		target:set("plat", "psx")
 		target:set("arch", "mipsel")
@@ -35,7 +43,7 @@ rule("psx")
 
 		import("lib.detect.find_program")
 		local arch_possibilities = {"mipsel", "mips"}
-		local vendor_possibilities = {"none", "linux", "unknown", ""}
+		local vendor_possibilities = {"none", "unknown", "", "linux"}
 		local abi_possibilities = {"elf", "gnu"}
 		local cross
 		for _, arch in ipairs(arch_possibilities) do
@@ -55,7 +63,7 @@ rule("psx")
 			end
 		end
 		if not cross then
-			error("could not find an appropriate cross compiler toolchain, try installing mipsel-none-elf-gcc")
+			raise("could not find an appropriate cross compiler toolchain, try installing mipsel-none-elf-gcc")
 		end
 
 		target:set("configvar", "cross", cross .. "-")
@@ -86,7 +94,7 @@ rule("psx")
 			toolchain:check()
 		end
 
-		local main_flags = {
+		add_flags_to(target, {
 			"-ffreestanding", "-nostdlib",
 			"-EL", "-G32", "-mgpopt", "-mno-mt",
 			"-msoft-float",
@@ -100,29 +108,26 @@ rule("psx")
 			"-ffast-math", "-ffp-contract=fast",
 
 			-- splitting into sections allows the linker to discard unused functions and data
-			"-ffunction-sections", "-fdata-sections"
-		}
+			"-ffunction-sections", "-fdata-sections",
+		})
 
 		if is_mode("debug") then
-			table.append(main_flags, "-g", "-Og", "-fno-inline")
+			add_flags_to(target, {"-g", "-Og", "-fno-inline"})
 			target:add("defines", "DEBUG")
 		else
-			table.append(main_flags, "-O2")
+			add_flags_to(target, {"-O2"})
 			target:add("defines", "NDEBUG")
 		end
 
+		target:add("cxxflags", "-fno-exceptions", "-fno-rtti", "-fno-unwind-tables", "-fno-threadsafe-statics", "-fno-use-cxa-atexit")
 		target:add("defines", "__STDC_NO_ATOMICS__")
-		target:add("cxxflags",
-			"-fno-exceptions", "-fno-rtti", "-fno-unwind-tables", "-fno-threadsafe-statics", "-fno-use-cxa-atexit"
-		)
-		target:add("ldflags", "-nodefaultlibs", "-no-pie", "-Wl,--gc-sections", {force = true})
+		add_flags_to(target, {"-nodefaultlibs", "-no-pie", "-Wl,--gc-sections"})
 		target:add("asflags", "-xassembler-with-cpp", "-msoft-float", {force = true})
 
-		local use_crt = target:values("use_crt")
-		if use_crt == nil then use_crt = true end
-		if use_crt then
+		if not target:values("no_crt") then
 			target:add("files", path.join(psxdir, "files/crt/*.s"))
 		end
+
 		local ldscript = target:values("ldscript")
 		target:add("ldflags", "-T " .. (ldscript or path.join(psxdir, "files/psx.ld")), {force = true})
 		if target:has_tool("ld", "clang") or target:has_tool("ld", "clang++") then
@@ -132,8 +137,7 @@ rule("psx")
 		if using_clang then
 			add_clang_flags_to(target, cross, os.iorunv)
 		else
-			-- compile_commands must use clang commands
-			-- so when using gcc, disable compile_commands for this target
+			-- compile_commands must use clang commands, so when using gcc, disable compile_commands for this target
 			target:set("policy", "generator.compile_commands", false)
 			-- and add an impostor clangified version of the target which will generate compile_commands on its behalf
 			local clangified = target:clone()
@@ -154,21 +158,21 @@ rule("psx")
 			end
 
 			-- gcc-only flags
-			table.append(main_flags,
+			add_flags_to(target, {
 				"-march=r3000", "-mtune=r3000", "-fdelayed-branch",
 				"-fcall-used-k0", "-fcall-used-k1", "-freg-struct-return",
 				"-mno-fp-exceptions", "-mno-llsc", "-fallow-store-data-races", "-mno-shared",
 				"-Wa,--strip-local-absolute", "-fsection-anchors", "-fno-semantic-interposition",
 				"-flimit-function-alignment", "-falign-functions=16:8", "-fno-align-labels", "-fno-align-jumps",
 				"-falign-loops=16:8",
-				"--param=l1-cache-line-size=0", "--param=l1-cache-size=0", "--param=l2-cache-size=0"
-			)
+				"--param=l1-cache-line-size=0", "--param=l1-cache-size=0", "--param=l2-cache-size=0",
+			})
 			target:add("cxxflags", "-fdeclone-ctor-dtor")
 			target:add("defines", "SCRATCHPAD='[[gnu::section(\".scratchpad\")]]'")
 			if is_mode("debug") or is_mode("dev") then
-				table.append(main_flags, "-mdivide-breaks")
+				add_flags_to(target, {"-mdivide-breaks"})
 			else
-				table.append(main_flags,
+				add_flags_to(target, {
 					"-mno-check-zero-division",
 					-- experiment zone
 					"-favoid-store-forwarding",
@@ -186,12 +190,9 @@ rule("psx")
 					"-fext-dce",
 					"-fschedule-insns", "-fschedule-insns2", "-fsched-pressure",
 					"-fira-hoist-pressure", "-fira-loop-pressure", "-fno-ira-share-save-slots",
-					"-fsched2-use-superblocks" -- apparently experimental!
-				)
+					"-fsched2-use-superblocks", -- apparently experimental!
+				})
 			end
 		end
-		for _, v in ipairs(main_flags) do
-			target:add("cxflags", v, {force = true})
-			target:add("ldflags", v, {force = true})
-		end
 	end)
+end)
