@@ -270,7 +270,7 @@ local function get_binary_dep(target)
 			if not dep_target then
 				return nil, "psx.psexe target dependency '" .. value .. "' does not exist"
 			end
-			if dep_target:get("kind") == "binary" then
+			if dep_target:get("kind") == "binary" and dep_target:get("plat") == "psx" and dep_target:get("arch") == "mipsel" then
 				if binary then
 					return nil, "psx.psexe target can only have one binary dependency, found '" .. binary:name() .. "' and '" .. dep_target:name() .. "'"
 				end
