@@ -257,28 +257,77 @@ local function convert(io, opts)
 	return true
 end
 
-rule("psx.psexe", function()
-	set_extensions(".elf")
-	after_link(function(target)
-		local psexe = target:values("psexe")
-		if psexe ~= false and psexe ~= "" then
-			if type(psexe) ~= "string" then
-				psexe = ".psexe"
+local function get_binary_dep(target)
+	local deps = target:get("deps")
+	if type(deps) == "string" then deps = {deps} end
+	if not deps or #deps == 0 then
+		return nil, "psx.psexe target must have at least one dependency"
+	end
+	local binary = nil
+	for index, value in ipairs(deps) do
+		if type(value) == "string" then
+			local dep_target = target:dep(value)
+			if not dep_target then
+				return nil, "psx.psexe target dependency '" .. value .. "' does not exist"
 			end
-			local output = target:targetfile():gsub("%.elf$", psexe)
-			local opts = {
-				region_str = target:values("psexe_region_str") or "", -- useless, not checked by the bios
-				set_sp = target:values("psexe_sp") or 0x807ffff0, -- generally useless, sp will be overridden by system.cnf and crt0
-				set_gp = target:values("psexe_gp") or 0, -- generally useless, gp will be overridden by crt0
-				strip_read_only = target:values("psexe_strip_read_only") or false, -- unknown purpose
-				input = target:targetfile(),
-				output = output,
-			}
+			if dep_target:get("kind") == "binary" and dep_target:get("plat") == "psx" and dep_target:get("arch") == "mipsel" then
+				if binary then
+					return nil, "psx.psexe target can only have one binary dependency, found '" .. binary:name() .. "' and '" .. dep_target:name() .. "'"
+				end
+				if dep_target:get("plat") ~= "psx" then
+					return nil, "psx.psexe target dependency '" .. dep_target:name() .. "' must be a psx target"
+				end
+				binary = dep_target
+			end
+		else
+			return nil, "psx.psexe target dependencies must be strings"
+		end
+	end
+	if not binary then
+		return nil, "psx.psexe target must have at least one binary dependency"
+	end
+	return binary
+end
+
+rule("psx.psexe", function()
+	on_load(function(target)
+		target:set("kind", "binary")
+		target:set("plat", "psx")
+		target:set("arch", "mipsel")
+		local extension = target:get("extension")
+		if not extension then
+			target:set("extension", ".psexe")
+		end
+	end)
+	before_config(function(target)
+		local binary, err = get_binary_dep(target)
+		if not binary then
+			raise("psx.psexe target error: " .. err)
+		end
+		target:set("basename", binary:basename())
+	end)
+	on_build(function(target)
+		import("core.project.depend")
+
+		os.mkdir(target:targetdir())
+		local binary, err = get_binary_dep(target)
+		if not binary then
+			raise("psx.psexe target error: " .. err)
+		end
+		local opts = {
+			region_str = target:values("psexe_region_str") or "", -- useless, not checked by the bios
+			set_sp = target:values("psexe_sp") or 0x807ffff0, -- generally useless, sp will be overridden by system.cnf and crt0
+			set_gp = target:values("psexe_gp") or 0, -- generally useless, gp will be overridden by crt0
+			strip_read_only = target:values("psexe_strip_read_only") or false, -- unknown purpose
+			input = binary:targetfile(),
+			output = target:targetfile(),
+		}
+		depend.on_changed(function ()
+			print("psexe conversion of %s to %s", opts.input, opts.output)
 			local ok, err = convert(io, opts)
 			if not ok then
 				raise("error while converting to psexe: " .. err)
 			end
-			print("converted to " .. output)
-		end
+		end, {files = opts.input})
 	end)
 end)

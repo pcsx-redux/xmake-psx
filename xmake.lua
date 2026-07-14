@@ -1,5 +1,3 @@
-includes("psexe")
-
 local psxdir = os.scriptdir()
 
 -- adds flags as both cxflags and ldflags
@@ -34,8 +32,6 @@ local function add_clang_flags_to(target, cross, iorunv)
 end
 
 rule("psx", function()
-	add_deps("psx.psexe")
-
 	before_config(function(target)
 		target:set("plat", "psx")
 		target:set("arch", "mipsel")
