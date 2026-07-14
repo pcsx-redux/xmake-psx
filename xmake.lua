@@ -125,7 +125,15 @@ rule("psx", function()
 		end
 
 		local ldscript = target:values("ldscript")
-		target:add("ldflags", "-T " .. (ldscript or path.join(psxdir, "files/psx.ld")), {force = true})
+		if ldscript == nil then
+			ldscript = {path.join(psxdir, "files", "psx.ld")}
+		end
+		if type(ldscript) == "string" then
+			ldscript = {ldscript}
+		end
+		for _, script in ipairs(ldscript) do
+			target:add("ldflags", "-T " .. script, {force = true})
+		end
 		if target:has_tool("ld", "clang") or target:has_tool("ld", "clang++") then
 			target:add("ldflags", "-fuse-ld=lld", "-Wl,-mllvm,-mattr=+noabicalls", "-Wl,-mllvm,-mattr=+soft-float", {force = true})
 		end
