@@ -132,7 +132,7 @@ rule("psx", function()
 			ldscript = {ldscript}
 		end
 		for _, script in ipairs(ldscript) do
-			target:add("ldflags", "-T " .. script, {force = true})
+			target:add("files", script)
 		end
 		if target:has_tool("ld", "clang") or target:has_tool("ld", "clang++") then
 			target:add("ldflags", "-fuse-ld=lld", "-Wl,-mllvm,-mattr=+noabicalls", "-Wl,-mllvm,-mattr=+soft-float", {force = true})
