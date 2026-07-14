@@ -124,16 +124,13 @@ rule("psx", function()
 			target:add("files", path.join(psxdir, "files/crt/*.s"))
 		end
 
-		local ldscript = target:values("ldscript")
-		if ldscript == nil then
-			ldscript = {path.join(psxdir, "files", "psx.ld")}
-		end
-		if type(ldscript) == "string" then
-			ldscript = {ldscript}
-		end
-		target:add("files", unpack(ldscript))
-		if target:has_tool("ld", "clang") or target:has_tool("ld", "clang++") then
-			target:add("ldflags", "-fuse-ld=lld", "-Wl,-mllvm,-mattr=+noabicalls", "-Wl,-mllvm,-mattr=+soft-float", {force = true})
+		if target:get("kind") == "binary" then
+			if not target:values("psx.no_crt") then
+				target:add("files", path.join(psxdir, "files/crt/*.s"))
+			end
+			if not target:values("psx.no_ldscript") then
+				target:add("files", path.join(psxdir, "files/psx.ld"))
+			end
 		end
 
 		if using_clang then
