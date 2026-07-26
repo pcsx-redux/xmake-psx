@@ -323,10 +323,10 @@ rule("psx.psexe", function()
 			output = target:targetfile(),
 		}
 		depend.on_changed(function ()
-			print("psexe conversion of %s to %s", opts.input, opts.output)
+			print("psx.psexe converted %s into %s", opts.input, opts.output)
 			local ok, err = convert(io, opts)
 			if not ok then
-				raise("error while converting to psexe: " .. err)
+				raise("psx.psexe error: " .. err)
 			end
 		end, {files = opts.input})
 	end)

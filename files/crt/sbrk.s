@@ -1,11 +1,9 @@
-.section .data._heap_ptr, "aw", @progbits
-.global _heap_ptr
+.section .sdata._heap_ptr, "aw", @progbits
 .weak _heap_ptr
 _heap_ptr:
 	.4byte _heap_start
 
 .section .text.sbrk, "ax"
-.global sbrk
 .weak sbrk
 sbrk:
 	lw $v0, (_heap_ptr)
