@@ -120,9 +120,6 @@ rule("psx", function()
 			cross = ""
 		end
 
-		target:set("configvar", "cross", cross or "")
-		target:set("toolchains", "cross")
-
 		local gcc_version, gcc_major_version, has_gxx
 		if cross ~= "" then
 			gcc_version = os.iorunv(cross .. "gcc", {"-dumpversion"}):trim()
@@ -135,12 +132,15 @@ rule("psx", function()
 			end
 			has_gxx = find_program(cross .. "g++")
 			if not has_gxx then
-				raise("warning: could not find " .. cross .. "g++, C++ may not work properly")
+				print("warning: could not find " .. cross .. "g++, C++ may not work properly")
 			end
 		end
 
+		target:set("configvar", "cross", cross or "")
+		target:set("toolchains", "cross")
+
 		if using_clang then
-			print("compiling with clang")
+			print("using clang for target " .. target:name())
 			print("note that LLVM's support for MIPS-I is experimental!")
 			if cross == "" then
 				print("warning: you can use clang without gcc, but may face issues with the standard headers (try installing an up to date mipsel, mips, or mips64 gcc toolchain)")
@@ -155,7 +155,7 @@ rule("psx", function()
 			target:set("toolset", "ex", clang_prefix .. "llvm-ar")
 			target:set("toolset", "strip", clang_prefix .. "llvm-strip")
 		else
-			print("compiling with " .. cross .. "gcc")
+			print("using " .. cross .. "gcc for target " .. target:name())
 			target:set("toolset", "cc", cross .. "gcc")
 			target:set("toolset", "cxx", cross .. (has_gxx and "g++" or "gcc"))
 			target:set("toolset", "as", cross .. "gcc")
@@ -165,6 +165,10 @@ rule("psx", function()
 			target:set("toolset", "ar", cross .. "ar")
 			target:set("toolset", "ex", cross .. "ar")
 			target:set("toolset", "strip", cross .. "strip")
+		end
+
+		for _, toolchain in ipairs(target:toolchains()) do
+			toolchain:check()
 		end
 
 		local flags = {
@@ -236,19 +240,26 @@ rule("psx", function()
 			table.append(flags,
 				"-march=r3000", "-mtune=r3000", "-fdelayed-branch",
 				"-mgp32", -- mips64 toolchains would default to 64-bit without this
-				"-mabi=eabi", -- the standard is -mabi=32, but eabi uses registers better
-				"-freg-struct-return", -- technically an abi change, but a good one
 				"-mno-llsc", "-fallow-store-data-races", "-mno-fp-exceptions",
 				"-falign-functions=16:8", "-falign-loops=16:8", "-fno-align-labels", "-fno-align-jumps",
 				"-flimit-function-alignment",
 				"--param=l1-cache-line-size=0", "--param=l1-cache-size=0", "--param=l2-cache-size=0",
-				"-mno-shared", "-fcall-used-k0", "-fcall-used-k1",
+				"-mno-shared",
 
 				"-mno-extern-sdata", "-membedded-data",
 
 				-- optimization
 				"-Wa,--strip-local-absolute", "-fsection-anchors", "-fno-semantic-interposition"
 			)
+
+			-- these are objective improvements, but obviously it breaks the abi
+			-- so if your code depends on the classic o32 abi for some reason, set psx.abi to o32 to change it back
+			local abi = target:values("psx.abi")
+			if abi == "o32" then
+				table.append(flags, "-mabi=32", "-fno-reg-struct-return")
+			else
+				table.append(flags, "-mabi=eabi", "-freg-struct-return", "-fcall-saved-k0", "-fcall-saved-k1")
+			end
 
 			-- dev mode will be better optimized than debug, but skip the most aggressive optimizations to compile faster
 			if is_mode("debug") or is_mode("dev") then
