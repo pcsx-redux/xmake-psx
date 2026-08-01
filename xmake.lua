@@ -1,6 +1,64 @@
 includes("psexe")
 
 local psx_dir = os.scriptdir()
+local psx_compiler_cache = {
+	auto_cross = {},
+	gcc_info = {},
+}
+
+local function detect_auto_cross(find_program)
+	local cache_key = table.concat({os.getenv("PATH") or "", os.getenv("CROSS") or "", os.getenv("CC") or ""}, "\31")
+	local cached = psx_compiler_cache.auto_cross[cache_key]
+	if cached ~= nil then
+		return cached, true
+	end
+
+	local detected_cross = ""
+	local arch_possibilities = {"mipsel", "mips", "mips64"}
+	local vendor_possibilities = {"psx", "none", "linux", "", "unknown"}
+	local abi_possibilities = {"elf", "gnu"}
+	for _, arch in ipairs(arch_possibilities) do
+		for _, vendor in ipairs(vendor_possibilities) do
+			for _, abi in ipairs(abi_possibilities) do
+				local checked_cross
+				if vendor == "" then -- account for toolchains missing the vendor part
+					checked_cross = arch .. "-" .. abi .. "-"
+				else
+					checked_cross = arch .. "-" .. vendor .. "-" .. abi .. "-"
+				end
+				if find_program(checked_cross .. "gcc") then
+					detected_cross = checked_cross
+					if detected_cross ~= "" then
+						psx_compiler_cache.auto_cross[cache_key] = detected_cross
+					end
+					return detected_cross, false
+				end
+			end
+		end
+	end
+
+	return nil, false
+end
+
+local function get_gcc_info(os, find_program, cross)
+	local gcc_info = psx_compiler_cache.gcc_info[cross]
+	if gcc_info then
+		return gcc_info
+	end
+
+	local gcc_version_output = os.iorunv(cross .. "gcc", {"-dumpversion"})
+	local gcc_version = gcc_version_output and gcc_version_output:trim() or ""
+	local gcc_major_version = tonumber(gcc_version:match("^%d+"))
+	local has_gxx = find_program(cross .. "g++")
+
+	gcc_info = {
+		version = gcc_version,
+		major_version = gcc_major_version,
+		has_gxx = has_gxx,
+	}
+	psx_compiler_cache.gcc_info[cross] = gcc_info
+	return gcc_info
+end
 
 -- prepend to certain flag groups in the target
 -- this is needed because compilers favor the last set flags, and we want the user's flags to override ours
@@ -23,8 +81,7 @@ local function prepend(target, groups, new_flags)
 end
 
 -- clang-only flags
--- for some reason, this function can't see os.iorunv, so i passed it through an argument
-local function prepend_clang_flags(target, cross, has_gxx, iorunv)
+local function prepend_clang_flags(os, target, cross, has_gxx)
 	-- clang unfortunately does not support eabi, register struct returns, nor configuring arbitrary registers like gcc
 	local clang_flags = {
 		"--target=mipsel-none-elf", "-march=mips1", "-mfloat-abi=soft",
@@ -47,7 +104,7 @@ local function prepend_clang_flags(target, cross, has_gxx, iorunv)
 	-- clang's freestanding support is poor, so make it use gcc's standard headers
 	if cross ~= "" then
 		table.append(clang_flags, "-nostdinc", "-nostdinc++")
-		local _, stderr = iorunv(cross .. (has_gxx and "g++" or "gcc"), {"-ffreestanding", "-xc++", path.join(psx_dir, "files/empty.c"), "-E", "-Wp,-v"})
+		local _, stderr = os.iorunv(cross .. (has_gxx and "g++" or "gcc"), {"-ffreestanding", "-xc++", path.join(psx_dir, "files/empty.c"), "-E", "-Wp,-v"})
 		for _, line in ipairs(stderr:split("\n")) do
 			if line:startswith(" ") then
 				target:add("sysincludedirs", line:trim())
@@ -63,9 +120,6 @@ end
 rule("psx", function()
 	before_config(function(target)
 		import("lib.detect.find_program")
-
-		target:set("plat", "psx")
-		target:set("arch", "mipsel")
 
 		local target_kind = target:kind()
 		if target_kind == "binary" then
@@ -92,55 +146,40 @@ rule("psx", function()
 			end
 		end
 
+		local cached = false
 		if cross == "" then
-			local arch_possibilities = {"mipsel", "mips", "mips64"}
-			local vendor_possibilities = {"psx", "none", "linux", "", "unknown"}
-			local abi_possibilities = {"elf", "gnu"}
-			for _, arch in ipairs(arch_possibilities) do
-				for _, vendor in ipairs(vendor_possibilities) do
-					for _, abi in ipairs(abi_possibilities) do
-						local checked_cross
-						if vendor == "" then -- account for toolchains missing the vendor part
-							checked_cross = arch .. "-" .. abi .. "-"
-						else
-							checked_cross = arch .. "-" .. vendor .. "-" .. abi .. "-"
-						end
-						if find_program(checked_cross .. "gcc") then
-							cross = checked_cross
-							goto found_cross
-						end
-					end
-				end
-			end
-			if not using_clang then
+			cross, cached = detect_auto_cross(find_program)
+			if cross == "" and not using_clang then
 				raise("could not find an appropriate compiler (try installing an up to date mipsel, mips, or mips64 gcc toolchain)")
 			end
-			::found_cross::
 		elseif cross == "none" then
 			cross = ""
 		end
+		target:set("plat", "psx")
+		target:set("arch", "mipsel")
 
+		target:set("configvar", "cross", cross or "")
+		target:set("toolchains", "cross")
 		local gcc_version, gcc_major_version, has_gxx
 		if cross ~= "" then
-			gcc_version = os.iorunv(cross .. "gcc", {"-dumpversion"}):trim()
-			gcc_major_version = tonumber(gcc_version:sub(1, gcc_version:find("%.")))
-			if gcc_major_version < 16 then
+			local gcc_info = get_gcc_info(os, find_program, cross)
+			gcc_version = gcc_info.version
+			gcc_major_version = gcc_info.major_version
+			has_gxx = gcc_info.has_gxx
+			if gcc_major_version and gcc_major_version < 16 then
 				-- while GCC 14 recognizes C23, it doesn't fully support it (for example, #embed is missing)
 				-- it's also supposed to support C++ modules, but it crashes all the time when trying to deal with them
 				-- in my experience GCC 15 crashes often with modules, and also with LTO, but 16 is much more stable
 				print("warning: the installed " .. cross .. "gcc is outdated (version " .. gcc_version .. "), so modern C and C++ features may be missing or broken")
 			end
-			has_gxx = find_program(cross .. "g++")
 			if not has_gxx then
 				print("warning: could not find " .. cross .. "g++, C++ may not work properly")
 			end
 		end
-
-		target:set("configvar", "cross", cross or "")
-		target:set("toolchains", "cross")
+		cached = cached and "(cached) " or ""
 
 		if using_clang then
-			print("using clang for target " .. target:name())
+			print("using " .. cached .. "clang for target " .. target:name())
 			print("note that LLVM's support for MIPS-I is experimental!")
 			if cross == "" then
 				print("warning: you can use clang without gcc, but may face issues with the standard headers (try installing an up to date mipsel, mips, or mips64 gcc toolchain)")
@@ -155,7 +194,7 @@ rule("psx", function()
 			target:set("toolset", "ex", clang_prefix .. "llvm-ar")
 			target:set("toolset", "strip", clang_prefix .. "llvm-strip")
 		else
-			print("using " .. cross .. "gcc for target " .. target:name())
+			print("using " .. cached .. cross .. "gcc for target " .. target:name())
 			target:set("toolset", "cc", cross .. "gcc")
 			target:set("toolset", "cxx", cross .. (has_gxx and "g++" or "gcc"))
 			target:set("toolset", "as", cross .. "gcc")
@@ -211,7 +250,7 @@ rule("psx", function()
 		end
 
 		if using_clang then
-			prepend_clang_flags(target, cross, has_gxx, os.iorunv)
+			prepend_clang_flags(os, target, cross, has_gxx)
 			prepend(target, {"cxflags", "ldflags", "asflags"}, flags)
 		else
 			-- compile_commands must use clang commands, so when using gcc, disable compile_commands for this target
@@ -228,7 +267,7 @@ rule("psx", function()
 			clangified:set("toolset", "ld", "clang")
 			clangified:set("policy", "generator.compile_commands", true)
 			clangified:set("policy", "build.c++.modules", true)
-			prepend_clang_flags(clangified, cross, has_gxx, os.iorunv)
+			prepend_clang_flags(os, clangified, cross, has_gxx)
 			prepend(target, {"cxflags", "ldflags", "asflags"}, flags)
 			import("core.project.project")
 			project.target_add(clangified)
@@ -285,7 +324,7 @@ rule("psx", function()
 					"-fira-hoist-pressure", "-fira-loop-pressure", "-fno-ira-share-save-slots",
 					"-fsched2-use-superblocks" -- apparently experimental!
 				)
-				if gcc_major_version >= 15 then
+				if gcc_major_version and gcc_major_version >= 15 then
 					table.append(flags,
 						"-favoid-store-forwarding",
 						"-fipa-reorder-for-locality",
