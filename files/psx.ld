@@ -17,7 +17,6 @@ SECTIONS {
 		KEEP(*(SORT_NONE(.init)))
 		KEEP(*(SORT_NONE(.fini)))
 		*(.text.startup .text.startup.* .text.exit .text.exit.*)
-		PROVIDE(main = _Z4mainv);
 	} > MAIN_RAM
 	.rodata : ALIGN(4) {
 		*(.rodata .rodata.* .gnu.linkonce.r.*)

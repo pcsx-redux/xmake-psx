@@ -7,6 +7,20 @@ rule("psx", function()
 	end)
 
 	before_config("before_config")
+
+	on_run(function(target)
+		if target:kind() == "binary" then
+			local home = os.getenv("HOME")
+			local redux_dir = path.join(target:autogendir(), "pcsx-redux-config")
+			os.mkdir(redux_dir)
+			os.iorunv("/home/malucart/AppImages/pcsxredux.appimage", {
+				"-fastboot",
+				"-interpreter", "-debugger",
+				"-run", "-exe", target:targetfile(),
+				"-portable", redux_dir,
+			})
+		end
+	end)
 end)
 
 -- you can add the psx.psexe rule into a build target directly, or create a separate target for it

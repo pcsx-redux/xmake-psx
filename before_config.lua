@@ -195,7 +195,7 @@ local all_abi_flags = {
 function main(target)
 	target:set("plat", "psx")
 	target:set("arch", "mipsel")
-	target:set("targetdir", "$(builddir)/$(plat)/$(mode)") -- turns build/psx/mipsel/release into build/psx/release, because psx should imply mipsel
+	target:set("targetdir", "$(builddir)/psx/$(mode)") -- turns build/psx/mipsel/release into build/psx/release, because psx should imply mipsel
 
 	local target_kind = target:kind()
 	if target_kind == "binary" then
