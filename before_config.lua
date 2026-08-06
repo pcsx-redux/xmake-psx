@@ -193,8 +193,6 @@ local all_abi_flags = {
 }
 
 function main(target)
-	target:set("plat", "psx")
-	target:set("arch", "mipsel")
 	target:set("targetdir", "$(builddir)/psx/$(mode)") -- turns build/psx/mipsel/release into build/psx/release, because psx should imply mipsel
 
 	local target_kind = target:kind()
@@ -256,6 +254,7 @@ function main(target)
 		end
 	end
 
+	local is_debug = is_mode("debug")
 	local flags = {
 		"-EL", "-msoft-float", "-mno-abicalls", "-mno-mt", "-D__STDC_NO_ATOMICS__",
 		"-ffreestanding", "-nostdlib", "-nodefaultlibs",
@@ -273,13 +272,12 @@ function main(target)
 		-- splitting functions and data into sections allows the linker to garbage collect them
 		"-ffunction-sections", "-fdata-sections",
 		"-Wl,--gc-sections",
-	} ---@type string[]
 
-	if is_mode("debug") then
-		table.append(flags, "-g", "-Og", "-DDEBUG")
-	else
-		table.append(flags, "-O2", "-DNDEBUG")
-	end
+		-- ALWAYS generate debug symbols, because they'll never be included in the psexe anyway
+		"-g",
+		is_debug and "-Og" or "-O2",
+		is_debug and "-DDEBUG" or "-DNDEBUG",
+	} ---@type string[]
 
 	if not target:values("psx.no_gpopt") then
 		table.append(flags, "-membedded-data", "-mno-extern-sdata")
