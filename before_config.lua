@@ -147,8 +147,7 @@ local function finish_with_clang(toolchain, flags, arch, gcc_info)
 	toolchain:set("toolset", "mxx", "clang++ --target=mipsel-none-elf")
 	toolchain:set("toolset", "as", "clang --target=mipsel-none-elf")
 
-	-- clang appears to assume loads from scratchpad are always 0? (TODO: check if this still happens in clang 22 and/or 23)
-	add_flags(toolchain, {"--target=mipsel-none-elf", "-march=" .. arch, "-DSCRATCHPAD="}, {force = true})
+	add_flags(toolchain, {"--target=mipsel-none-elf", "-march=" .. arch}, {force = true})
 	add_flags(toolchain, flags)
 
 	-- clang's freestanding support is poor, so make it use gcc's standard headers if available (cached)
