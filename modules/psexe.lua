@@ -16,7 +16,7 @@ local function get_binary_dep(target)
 	local binary
 	for _, dep_name in ipairs(deps) do
 		local dep_target = target:dep(dep_name)
-		if dep_target:get("kind") == "binary" then
+		if dep_target:kind() == "binary" then
 			if binary then
 				return nil, "target can only have one binary dependency, found '" .. binary:name() .. "' and '" .. dep_target:name() .. "'"
 			end
