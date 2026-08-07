@@ -1,5 +1,9 @@
 add_moduledirs("modules")
 
+option("pcsx-redux", function()
+	set_default("auto")
+end)
+
 rule("psx", function()
 	on_load(function(target)
 		target:set("plat", "psx")
@@ -8,19 +12,7 @@ rule("psx", function()
 
 	before_config("before_config")
 
-	on_run(function(target)
-		if target:kind() == "binary" then
-			local home = os.getenv("HOME")
-			local redux_dir = path.join(target:autogendir(), "pcsx-redux-config")
-			os.mkdir(redux_dir)
-			os.iorunv("/home/malucart/AppImages/pcsxredux.appimage", {
-				"-fastboot",
-				"-interpreter", "-debugger",
-				"-run", "-exe", target:targetfile(),
-				"-portable", redux_dir,
-			})
-		end
-	end)
+	on_run("on_run")
 end)
 
 -- override the autoupdate rule to avoid issues
