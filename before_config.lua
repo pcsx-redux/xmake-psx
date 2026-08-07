@@ -160,6 +160,14 @@ local function finish_with_clang(toolchain, flags, arch, gcc_info)
 			toolchain:add("cxflags", "-isystem " .. paths[i])
 		end
 	end
+
+	toolchain:set("toolset", "cc", "clang")
+	toolchain:set("toolset", "cxx", "clang++")
+	toolchain:set("toolset", "ld", "clang++")
+	toolchain:set("toolset", "sh", "clang++")
+	toolchain:set("toolset", "mm", "clang")
+	toolchain:set("toolset", "mxx", "clang++")
+	toolchain:set("toolset", "as", "clang")
 end
 
 local function generate_ide_target(target, flags, using_clang, gcc_info)
