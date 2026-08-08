@@ -35,7 +35,7 @@ function main(target)
 	else
 		redux = assert(find_program(redux), "specified pcsx-redux path (from --pcsx-redux=... option) is invalid: " .. redux)
 	end
-	print("pcsx-redux located at: " .. redux)
+	cprint("${magenta bright}psx: <" .. target:name() .. "> ${clear}running with pcsx-redux (" .. redux .. ")")
 
 	local redux_config_dir = path.join(config.builddir(), ".gens", "pcsx-redux-config")
 	os.mkdir(redux_config_dir)
