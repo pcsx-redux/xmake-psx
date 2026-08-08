@@ -1,9 +1,13 @@
 import("lib.detect.find_program")
+import("core.project.config")
+import("core.base.option")
+import("core.base.process")
 
 function main(target)
 	if target:kind() ~= "binary" then
 		return nil
 	end
+
 	local redux = get_config("pcsx-redux")
 	if not redux or redux == "auto" or redux == "" then
 		redux = os.getenv("PCSX_REDUX")
@@ -15,10 +19,12 @@ function main(target)
 				local env_home = os.getenv("HOME")
 				if env_home then
 					import("lib.detect.find_file")
-					local appimages_dir = path.join(env_home, "AppImages")
-					local applications_dir = path.join(env_home, "Applications")
-					local downloads_dir = path.join(env_home, "Downloads")
-					local search_paths = {appimages_dir, applications_dir, downloads_dir, "$(env PATH)"}
+					local search_paths = {
+						"$(env PATH)",
+						path.join(env_home, "AppImages"),
+						path.join(env_home, "Applications"),
+						path.join(env_home, "Downloads"),
+					}
 					redux = find_file("pcsxredux*", search_paths)
 						or find_file("PCSX-Redux*", search_paths)
 						or find_file("pcsx-redux*", search_paths)
@@ -31,19 +37,29 @@ function main(target)
 	end
 	print("pcsx-redux located at: " .. redux)
 
-	import("core.project.config")
-	local redux_dir = path.join(config.builddir(), ".gens", "pcsx-redux-config")
-	os.mkdir(redux_dir)
+	local redux_config_dir = path.join(config.builddir(), ".gens", "pcsx-redux-config")
+	os.mkdir(redux_config_dir)
 
-	os.runv(redux, {
+	local args = option.get("arguments") or {}
+	local detach = table.contains(args, "--detach")
+	local gdb = table.contains(args, "--gdb")
+
+	local redux_process = process.openv(redux, {
+		"-softgpu",
 		"-8mb",
 		"-interpreter",
-		"-softgpu",
 		"-debugger",
-		"-fastboot",
 		"-gdb",
-		"-run",
+		"-gdb-port", get_config("gdb-port"),
+		"-fastboot",
 		"-exe", target:targetfile(),
-		"-portable", redux_dir,
-	})
+		"-portable", redux_config_dir,
+		"-run",
+	}, {detach = true})
+	if gdb then
+		os.execv("gdb", {target:targetfile(), "-ex", "set remotetimeout 5", "-ex", "target remote localhost:" .. get_config("gdb-port")})
+	elseif not detach then
+		redux_process:wait()
+	end
+	redux_process:close()
 end

@@ -339,7 +339,5 @@ function on_build(target)
 		local input = binary:targetfile()
 		local output = target:targetfile()
 		apply(target, input, output)
-	else
-		builder.build_target(target)
 	end
 end
