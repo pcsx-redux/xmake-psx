@@ -281,8 +281,7 @@ function main(target)
 		"-ffunction-sections", "-fdata-sections",
 		"-Wl,--gc-sections",
 
-		-- ALWAYS generate debug symbols, because they'll never be included in the psexe anyway
-		"-g",
+		"-g", -- ALWAYS generate debug symbols, because they'll never be included in the psexe anyway
 		is_debug and "-Og" or "-O2",
 		is_debug and "-DDEBUG" or "-DNDEBUG",
 	} ---@type string[]
