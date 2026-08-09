@@ -39,7 +39,7 @@ function main()
 
 	local value = zed_debug_prologue
 	for name, target in pairs(project.targets()) do
-		if target:kind() == "binary" and target:rule("psx") then
+		if target:kind() == "binary" and target:plat() == "psx" then
 			local elf = target:targetfile()
 			value = value .. zed_debug_pattern:format(name, get_config("gdb-port"), elf, name)
 		end

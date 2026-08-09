@@ -45,9 +45,7 @@ task("zed", function()
 	set_category("plugin")
 	set_menu({
 		description = "Generate debug configurations for Zed (using PCSX-Redux)",
-		options = {
-			{"y", "yes", "k", nil, "Always overwrite"},
-		},
+		options = {},
 	})
 	on_run("zed")
 end)
