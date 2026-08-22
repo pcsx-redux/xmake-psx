@@ -281,7 +281,7 @@ function main(target)
 		"-ffunction-sections", "-fdata-sections",
 		"-Wl,--gc-sections",
 
-		"-g", -- ALWAYS generate debug symbols, because they'll never be included in the psexe anyway
+		"-g", -- always generate debug symbols, because they'll never be included in the psexe anyway
 		is_debug and "-Og" or "-O2",
 		is_debug and "-DDEBUG" or "-DNDEBUG",
 	} ---@type string[]
@@ -310,7 +310,7 @@ function main(target)
 	toolchain:add("cxxflags", "-fno-rtti", "-fno-unwind-tables", "-fno-threadsafe-statics", "-fno-use-cxa-atexit")
 	toolchain:add("ldflags", "-no-pie", "-fno-rtti", "-fno-unwind-tables", "-fno-threadsafe-statics", "-fno-use-cxa-atexit")
 
-	local abi = target:values("psx.abi") or "fast"
+	local abi = target:values("psx.abi") or "o32"
 	local abi_flags = all_abi_flags[abi]
 	if abi_flags then
 		if not using_clang then
@@ -366,7 +366,6 @@ function main(target)
 			table.append(flags,
 				"-mno-check-zero-division",
 				-- experiment zone
-				"-fisolate-erroneous-paths-attribute",
 				"-free", "-fpredictive-commoning", "-fsched-pressure", "-fsched-spec-load",
 				"-ftree-pre", "-ftree-partial-pre",
 				"-fira-loop-pressure", "-ftree-loop-im", "-ftree-loop-distribution", "-floop-interchange",
