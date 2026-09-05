@@ -306,7 +306,7 @@ end
 
 function after_config(target)
 	local files = target:get("files")
-	if not files or #files == 0 or not target:rule("psx") then
+	if not files or #files == 0 or target:plat() ~= "psx" then
 		local extension = target:get("extension")
 		if not extension then
 			target:set("extension", ".psexe")
@@ -318,7 +318,7 @@ function after_config(target)
 		target:set("basename", binary:basename())
 
 		import("core.project.project")
-		local standalone_rule = project.rule("psx.psexe._standalone_target")
+		local standalone_rule = project.rule("@self/psexe._standalone_target")
 		target:rule_add(standalone_rule)
 	end
 end
@@ -331,7 +331,7 @@ end
 
 function on_build(target)
 	local files = target:get("files")
-	if not files or #files == 0 or not target:rule("psx") then
+	if not files or #files == 0 or target:plat() ~= "psx" then
 		local binary, err = get_binary_dep(target)
 		if not binary then
 			raise_for(target, err)

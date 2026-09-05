@@ -3,21 +3,7 @@ import("core.project.task")
 import("core.base.option")
 import("lib.detect.find_program")
 import("core.base.pipe")
-import("core.base.tty")
-import("core.base.colors")
-
-local cached_pager, cached_pager_args
-
-local function get_pager()
-	if not cached_pager then
-		if find_program("less") then
-			cached_pager, cached_pager_args = "less", {"-R"}
-		elseif find_program("more") then
-			cached_pager, cached_pager_args = "more", {}
-		end
-	end
-	return cached_pager, cached_pager_args
-end
+import("@self.human")
 
 local function do_for_target(target, wanted_symbols, user_args)
 	task.run("build", {target = target:name()})
@@ -53,8 +39,7 @@ local function do_for_target(target, wanted_symbols, user_args)
 	end
 	table.join2(args, user_args)
 
-	-- try to match xmake's own conditions for coloring
-	if tty.has_color8() and colors.theme():name() ~= "plain" then
+	if human.color then
 		if is_llvm_objdump then
 			table.append(args, "--disassembler-color=on")
 		else
@@ -62,29 +47,7 @@ local function do_for_target(target, wanted_symbols, user_args)
 		end
 	end
 
-	print("running: " .. objdump .. " " .. os.args(args))
-
-	-- try to page the output nicely, but only when invoked manually in a terminal
-	if io.isatty() then
-		local stdout = os.iorunv(objdump, args)
-		if not stdout then
-			return false
-		end
-
-		local pager, pager_args = get_pager()
-		if pager then
-			local read_pipe, write_pipe = pipe.openpair()
-			write_pipe:write(stdout)
-			write_pipe:close()
-			os.execv(pager, pager_args, {stdin = read_pipe})
-		end
-	else
-		if not os.execv(objdump, args) then
-			return false
-		end
-	end
-
-	return true
+	return human.execv_paged(objdump, args)
 end
 
 function main()

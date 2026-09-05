@@ -368,11 +368,11 @@ function main(target)
 				-- experiment zone
 				"-free", "-fpredictive-commoning", "-fsched-pressure", "-fsched-spec-load",
 				"-ftree-pre", "-ftree-partial-pre",
-				"-fira-loop-pressure", "-ftree-loop-im", "-ftree-loop-distribution", "-floop-interchange",
+				"-fira-loop-pressure", "-ftree-loop-im",
 				"-fno-prefetch-loop-arrays",
 				"-fweb", "-frename-registers", "-fgcse-sm", "-fgcse-las", "-fgcse-after-reload",
 				"-fipa-pta", "-fipa-icf", "-fipa-bit-cp", "-fipa-vrp",
-				"-freorder-blocks-algorithm=simple", "-freorder-blocks-and-partition", "-freorder-functions",
+				"-freorder-blocks-algorithm=simple", "-freorder-blocks-and-partition",
 				"-ffold-mem-offsets",
 				"-fmodulo-sched", "-fmodulo-sched-allow-regmoves",
 				"-fdevirtualize-speculatively",
@@ -386,6 +386,8 @@ function main(target)
 					"-fipa-reorder-for-locality",
 					"-fext-dce"
 				)
+			else
+				table.append(flags, "-freorder-functions")
 			end
 
 			toolchain:add("cxxflags", "-fdeclone-ctor-dtor")

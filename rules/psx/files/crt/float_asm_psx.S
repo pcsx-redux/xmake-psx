@@ -5,16 +5,16 @@
 .set nomacro
 .set noat
 
-#define abs0 $6
-#define abs1 $7
-#define leadingzeros $8
-#define signbit $9
-#define sig1withouthiddenzero $10
-#define sig0 $12
-#define sig1 $13
-#define hiddenone $14
-#define exp0 $15
-#define exp1 $t8
+#define abs0 $a2
+#define abs1 $a3
+#define leadingzeros $t0
+#define signbit $t1
+#define sig1withouthiddenzero $t2
+#define sig0 $t3
+#define sig1 $ta0
+#define hiddenone $ta1
+#define exp0 $ta2
+#define exp1 $ta3
 #define inputsxor $t9
 #define sig $v1
 #define lzcs $30
@@ -24,7 +24,7 @@
 // 3 cycles if a == 0
 // 16 cycles if a != 0
 .section .text._float.qtof
-.weak qtof
+.global qtof
 .balign 16
 qtof:
 	beqz $a0, .Lret0 // 0 is a special case because the math below can't make an exponent of 0
@@ -50,7 +50,7 @@ qtof:
 // 9 cycles if abs(a) >= (1/4096) && a is too large
 // 15 cycles if abs(a) >= (1/4096) && a isn't too large
 .section .text._float.ftoq
-.weak ftoq
+.global ftoq
 .balign 16
 ftoq:
 	// extract exponent
@@ -92,7 +92,7 @@ ftoq:
 // ^ notably less than integer div instruction (36 cycles) (not counting call overhead)
 // for subtraction, add 2 cycles
 .section .text._float.addsub
-.weak __addsf3, __subsf3
+.global __addsf3, __subsf3
 .balign 16
 __subsf3:
 	lui signbit, 0x8000
@@ -192,7 +192,7 @@ __addsf3:
 // by some miracle, faster than addition? but it does sacrifice a little precision for that speed
 // there COULD be an optimization for powers of two, but the multu is fast enough that that would hurt speed
 .section .text._float.mul
-.weak __mulsf3
+.global __mulsf3
 .balign 16
 __mulsf3:
 	lui signbit, 0x8000
@@ -250,7 +250,7 @@ __mulsf3:
 // 57 cycles if a0 != 0 && a1 != 1
 // note: division by zero results in zero (we do not handle infs or nans in this house)
 .section .text._float.div
-.weak __divsf3
+.global __divsf3
 .balign 16
 __divsf3:
 	lui signbit, 0x8000
@@ -311,7 +311,7 @@ __divsf3:
 // fits in just 2 cache lines! :D
 // 0 and -0 will be treated as different
 .section .text._float.cmp
-.weak __eqsf2, __nesf2, __ltsf2, __lesf2, __gtsf2, __gesf2
+.global __eqsf2, __nesf2, __ltsf2, __lesf2, __gtsf2, __gesf2
 .balign 16
 __eqsf2: __nesf2: __ltsf2: __lesf2: __gtsf2: __gesf2:
 	// early return if they are equal
