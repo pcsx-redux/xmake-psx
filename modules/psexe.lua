@@ -1,4 +1,5 @@
 import("core.project.depend")
+import("core.package.addon")
 
 local function print_for(target, msg)
 	cprint("${magenta bright}psx.psexe: <" .. target:name() .. "> ${clear}" .. tostring(msg))
@@ -318,7 +319,9 @@ function after_config(target)
 		target:set("basename", binary:basename())
 
 		import("core.project.project")
-		local standalone_rule = project.rule("@self/psexe._standalone_target")
+		local addon_name = addon.owner()
+		local prefix = addon_name and ("@addon/" .. addon_name .. "/") or ""
+		local standalone_rule = project.rule(prefix .. "psexe._standalone_target")
 		target:rule_add(standalone_rule)
 	end
 end
