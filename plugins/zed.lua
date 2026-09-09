@@ -18,15 +18,9 @@ local zed_debug_pattern = [[
 	},
 ]]
 
-task("zed", function()
-	set_category("plugin")
-	set_menu({
-		description = "Generate debug configurations for Zed (using PCSX-Redux)",
-		options = {},
-	})
-	on_run(function()
+function main()
 		import("core.project.project")
-		import("@self.ide_gen")
+		import("ide_gen")
 
 		ide_gen("debug configurations for Zed", ".zed/debug.json", function()
 			local value = zed_debug_prologue
@@ -38,5 +32,4 @@ task("zed", function()
 			end
 			return value .. "]"
 		end)
-	end)
-end)
+end

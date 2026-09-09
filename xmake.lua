@@ -1,3 +1,43 @@
+add_moduledirs("modules")
+includes("plugins")
+
+rule("psx", function()
+	on_load(function(target)
+		target:set("plat", "psx")
+		target:set("arch", "mipsel")
+	end)
+
+	before_config("before_config")
+	on_run("on_run")
+end)
+
+-- you can either add the psexe rule into a project directly, or create a separate target for it
+rule("psexe", function()
+	on_load(function(target)
+		target:set("kind", "binary")
+		target:set("plat", "psx")
+		target:set("arch", "mipsel")
+	end)
+
+	after_config(function(target)
+		import("psexe")
+		psexe.after_config(target)
+	end)
+
+	after_link(function(target)
+		import("psexe")
+		psexe.after_link(target)
+	end)
+end)
+
+-- internal; just use the psexe rule instead and it'll auto detect
+rule("_psexe_separate", function()
+    on_build(function(target)
+        import("psexe")
+        psexe.on_build(target)
+    end)
+end)
+
 -- override the autoupdate rule to avoid issues
 rule("plugin.compile_commands.autoupdate", function()
 	set_kind("project")

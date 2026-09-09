@@ -3,7 +3,7 @@ import("core.project.task")
 import("core.base.option")
 import("lib.detect.find_program")
 import("core.base.pipe")
-import("@self.human")
+import("human")
 
 local function do_for_target(target, wanted_symbols, user_args)
 	task.run("build", {target = target:name()})

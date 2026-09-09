@@ -320,8 +320,7 @@ function after_config(target)
 
 		import("core.project.project")
 		local addon_name = addon.owner()
-		local prefix = addon_name and ("@addon/" .. addon_name .. "/") or ""
-		local standalone_rule = project.rule(prefix .. "psexe._standalone_target")
+		local standalone_rule = project.rule("_psexe_separate")
 		target:rule_add(standalone_rule)
 	end
 end

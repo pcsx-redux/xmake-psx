@@ -10,3 +10,12 @@ task("asm", function()
 	})
 	on_run("asm")
 end)
+
+task("zed", function()
+	set_category("plugin")
+	set_menu({
+		description = "Generate debug configurations for Zed (using PCSX-Redux)",
+		options = {},
+	})
+	on_run("zed")
+end)
