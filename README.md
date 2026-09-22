@@ -33,7 +33,7 @@ git add .gitmodules
 ```
 
 ----
-Yeah, this is all slightly convenient and it's a bit error prone, but it's the most reliable option I know of. Just remember the difference between a submodule tracking a commit and tracking a branch, and remember those commands.
+Yeah, this is all slightly inconvenient and a bit error prone, but it's the most reliable option I know of. Just remember the difference between a submodule tracking a commit and tracking a branch, and remember those commands.
 
 ## Getting started
 To use xmake-psx in a project, you simply need to include it from your `xmake.lua`, and then add the `psx` rule to any targets that you want to compile for PS1 (that includes libraries, by the way). Here's a simple example, assuming you placed xmake-psx in an `ext/` subfolder:
