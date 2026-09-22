@@ -2,7 +2,6 @@ import("core.project.project")
 import("core.project.task")
 import("core.base.option")
 import("lib.detect.find_program")
-import("core.base.pipe")
 import("human")
 
 local function do_for_target(target, wanted_symbols, user_args)
@@ -51,7 +50,7 @@ local function do_for_target(target, wanted_symbols, user_args)
 end
 
 function main()
-	local wanted_target = option.get("target")
+	local wanted_target_name = option.get("target")
 	local wanted_symbols = {}
 	local user_args = {}
 
@@ -71,11 +70,11 @@ function main()
 
 	task.run("config")
 
-	if wanted_target and wanted_target ~= "" then
+	if wanted_target_name and wanted_target_name ~= "" then
 		-- if the user specified a target, do that
-		local target = project.target(wanted_target)
+		local target = project.target(wanted_target_name)
 		if not target then
-			raise("no such target: " .. wanted_target)
+			raise("no such target: " .. wanted_target_name)
 		end
 		do_for_target(target, wanted_symbols, user_args)
 	else

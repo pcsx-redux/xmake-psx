@@ -1,5 +1,7 @@
 import("core.base.tty")
 import("core.base.colors")
+import("lib.detect.find_program")
+import("core.base.pipe")
 
 -- try to match xmake's own conditions for coloring
 color = tty.has_color8() and colors.theme():name() ~= "plain"
@@ -20,7 +22,7 @@ end
 function execv_paged(program, args)
 	-- try to page the output nicely, but only if invoked manually in a terminal
 	if io.isatty() then
-		print("running: " .. objdump .. " " .. os.args(args))
+		print("running: " .. program .. " " .. os.args(args))
 
 		local stdout = os.iorunv(program, args)
 		if not stdout then
@@ -36,5 +38,5 @@ function execv_paged(program, args)
 		end
 		-- falthrough to execute normally if no pager is installed
 	end
-	return os.execv(objdump, args) and true or false
+	return os.execv(program, args) and true or false
 end

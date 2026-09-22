@@ -179,6 +179,7 @@ local function generate_ide_target(target, flags, using_clang, gcc_info)
 	ide:set("kind", "headeronly") -- headeronly makes xmake ignore building it, while still logging the commands
 	ide:set("policy", "generator.compile_commands", true)
 	ide:add("defines", "IDE")
+	ide:set("run", nil)
 
 	if not using_clang then
 		ide:set("toolchains", "clang")

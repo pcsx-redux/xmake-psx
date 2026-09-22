@@ -1,14 +1,26 @@
 add_moduledirs("modules")
 includes("plugins")
 
+option("psx-emu", {default = "default"})
+option("pcsx-redux", {default = "default"})
+option("duckstation", {default = "default"})
+option("gdb-port", {default = "3333"})
+
 rule("psx", function()
 	on_load(function(target)
 		target:set("plat", "psx")
 		target:set("arch", "mipsel")
+
+		-- only binary targets should have a run script
+		if target:kind() == "binary" then
+			target:set("run", function(target)
+				import("psx_emu")
+				psx_emu.launch(target)
+			end)
+		end
 	end)
 
 	before_config("before_config")
-	on_run("on_run")
 end)
 
 -- you can either add the psexe rule into a project directly, or create a separate target for it
