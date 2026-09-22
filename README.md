@@ -7,24 +7,33 @@ Utilities for PlayStation 1 projects that use Xmake as their build system. This 
 ## How to `git submodule` effectively
 When including other remote projects (like xmake-psx, or a library) in a project, or simply when sharing some code across your projects, you may want to keep those things synced with their main repos so that you can update them in the future. A neat way to do this is with Git submodules. However, submodules are by default pinned to specific commits, so you can't easily update them, defeating the point of them for us. The solution is pretty simple, but you still have to pay attention. Here's how to do it:
 
-When adding a new submodule, specify a branch using the `-b <branch>` option. For example, this is how you add xmake-psx to a repo, assuming you want to place it in a subfolder called `ext`:
+----
+When adding a new submodule, use the `-b <branch>` option, which will make it track that branch (i.e. it will be a reference to the latest commit on it). For example, this is how you add xmake-psx to a repo, assuming you want to place it in a subfolder called `ext`:
 ```bash
 git submodule add -b main https://codeberg.org/malucart/xmake-psx ext/xmake-psx
 ```
-When cloning a repo that uses submodules, you have to pass `--recursive` to it, or the submodules will not be included in your clone:
+
+----
+When cloning a repo that uses submodules, you need to pass `--recursive` to it, or the submodules will not be included in your clone:
 ```bash
 git clone --recursive <url>
 ```
-When you have a repo, and you want to update its submodules, do this:
+If you try to build a project and you see "`warning: includes("ext/xmake-psx") cannot find any files!`", that means xmake-psx is missing, so you may have cloned a git repo but forgotten to pass `--recursive`. Although if xmake-psx wasn't present in the original repo either, you may just have to provide it manually.
+
+----
+When you have an existing repo and you want to update its submodules, do the following. If they're already up to date, there will be no output.
 ```bash
 git submodule update --remote
 ```
+
+----
 And reminder: when modifying your submodules, the `.gitmodules` file gets edited, so you have to add it to a commit.
 ```bash
 git add .gitmodules
 ```
 
-Yeah, this is all slightly convenient and it's a bit prone to error, but it's the most reliable option I know of. Just remember the difference between a submodule tracking a commit and tracking a branch, and remember those commands.
+----
+Yeah, this is all slightly convenient and it's a bit error prone, but it's the most reliable option I know of. Just remember the difference between a submodule tracking a commit and tracking a branch, and remember those commands.
 
 ## Getting started
 To use xmake-psx in a project, you simply need to include it from your `xmake.lua`, and then add the `psx` rule to any targets that you want to compile for PS1 (that includes libraries, by the way). Here's a simple example, assuming you placed xmake-psx in an `ext/` subfolder:
@@ -60,20 +69,10 @@ xmake-psx will try to find any `mips*-gcc` in your PATH and use that, and failin
 Here are some useful commands for this:
 - `xmake run` - run a target with a detected or specified PS1 emulator (PCSX-Redux and DuckStation are supported)
 - `xmake gdb` - start GDB and attach it to a running GDB server (defaults to localhost:3333, matching PCSX-Redux's default) (you have to enable the GDB server in the emulator!)
-- `xmake zed` - generate a debug configuration for attaching Zed to a running GDB server (generation for more editors will come later)
+- `xmake zed` - generate a debug configuration for Zed to attach to a running GDB server (generation for more editors will come later)
 
-For quicker builds and/or better catching bugs, you can switch your build from release mode into debug mode like this:
+For quicker builds and/or better bug catching, you can switch your build from release mode into debug mode like this:
 ```bash
 xmake f --mode=debug
 ```
 This will undefine `NDEBUG` (so calls to `assert` will actually run), reduce the amount of optimizations and turn off LTO, and add trapping checks for division by zero. Note that debug symbols are always kept regardless of mode, since they will eventually be stripped by the conversion to a PS-EXE anyway, so you can debug release mode binaries too if you need to.
-
-## Troubleshooting
-If you see something like "`warning: includes("ext/xmake-psx") cannot find any files!`", that means xmake-psx is missing. You may have cloned a git repo but forgotten to pass `--recursive` to it:
-```bash
-git clone --recursive <url>
-```
-If xmake-psx wasn't present in the original repo either, you may have to provide it yourself:
-```bash
-git clone https://codeberg.org/malucart/xmake-psx ext/xmake-psx
-```
