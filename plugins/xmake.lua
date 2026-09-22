@@ -19,3 +19,15 @@ task("zed", function()
 	})
 	on_run("zed")
 end)
+
+task("gdb", function()
+	set_category("plugin")
+	set_menu({
+		description = "Start GDB and attach it to a GDB server",
+		options = {
+			{"t", "target", "kv", nil, "target to debug"},
+			{"p", "gdb-port", "kv", nil, "GDB server port"},
+		},
+	})
+	on_run("gdb")
+end)
