@@ -1,0 +1,1 @@
+Read-only mirror of https://codeberg.org/malucart/xmake-psx, used by nugget's submodules so CI does not depend on Codeberg being reachable. Upstream branches and tags are copied daily by the workflow on this branch. Send changes upstream.

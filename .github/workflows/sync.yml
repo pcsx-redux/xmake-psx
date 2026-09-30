@@ -1,0 +1,27 @@
+name: Sync from Codeberg
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch upstream and push
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git init -q mirror && cd mirror
+          git remote add upstream https://codeberg.org/malucart/xmake-psx.git
+          for i in 1 2 3 4 5; do
+            git fetch --tags upstream '+refs/heads/*:refs/remotes/upstream/*' && break
+            [ $i = 5 ] && exit 1
+            sleep $((i * 60))
+          done
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" \
+            '+refs/remotes/upstream/*:refs/heads/*' '+refs/tags/*:refs/tags/*'
