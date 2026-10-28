@@ -12,7 +12,7 @@
 
 .section .text.memset, "ax", @progbits
 .type memset, @function
-.global memset
+.weak memset
 .balign 16
 memset:
 	// if either dst or size is misaligned, just do the byte version

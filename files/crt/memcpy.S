@@ -13,7 +13,7 @@
 
 .section .text.memcpy, "ax", @progbits
 .type memcpy, @function
-.global memcpy
+.weak memcpy
 .balign 16
 memcpy:
 	// if any of src, dst, or size is not aligned to words, just do the byte version
