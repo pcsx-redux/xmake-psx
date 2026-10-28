@@ -139,16 +139,23 @@ local function add_flags(object, flags, opt)
 end
 
 local function finish_with_clang(toolchain, flags, arch, gcc_info)
-	toolchain:set("toolset", "cc", "clang --target=mipsel-none-elf")
-	toolchain:set("toolset", "cxx", "clang++ --target=mipsel-none-elf")
-	toolchain:set("toolset", "ld", "clang++ --target=mipsel-none-elf")
-	toolchain:set("toolset", "sh", "clang++ --target=mipsel-none-elf")
-	toolchain:set("toolset", "mm", "clang --target=mipsel-none-elf")
-	toolchain:set("toolset", "mxx", "clang++ --target=mipsel-none-elf")
-	toolchain:set("toolset", "as", "clang --target=mipsel-none-elf")
+	--add_flags(toolchain, {"--target=mipsel-none-elf", "-nostdlib", "-march=" .. arch}, {force = true})
+	-- that doesn't seem to allow the rest of the flags to be auto detected, so embed the flags into the command
 
-	add_flags(toolchain, {"--target=mipsel-none-elf", "-march=" .. arch}, {force = true})
+	toolchain:set("toolset", "cc", "clang --target=mipsel-none-elf -nostdlib -march=" .. arch)
+	toolchain:set("toolset", "cxx", "clang++ --target=mipsel-none-elf -nostdlib -march=" .. arch)
+	toolchain:set("toolset", "ld", "clang++ --target=mipsel-none-elf -nostdlib -march=" .. arch)
+	toolchain:set("toolset", "sh", "clang++ --target=mipsel-none-elf -nostdlib -march=" .. arch)
+	toolchain:set("toolset", "mm", "clang --target=mipsel-none-elf -nostdlib -march=" .. arch)
+	toolchain:set("toolset", "mxx", "clang++ --target=mipsel-none-elf -nostdlib -march=" .. arch)
+	toolchain:set("toolset", "as", "clang --target=mipsel-none-elf -nostdlib -march=" .. arch)
+
 	add_flags(toolchain, flags)
+	if table.contains(toolchain:get("cxflags"), "-mabi=eabi") then
+		toolchain:add("asflags", {"-fdollars-in-identifiers", "-D$ta0=$8", "-D$ta1=$9", "-D$ta2=$10", "-D$ta3=$11"})
+	else
+		toolchain:add("asflags", {"-fdollars-in-identifiers", "-D$ta0=$12", "-D$ta1=$13", "-D$ta2=$14", "-D$ta3=$15"})
+	end
 
 	-- clang's freestanding support is poor, so make it use gcc's standard headers if available (cached)
 	-- TODO: try using the freestanding C++ STL and check if it needs a similar workaround
@@ -160,14 +167,6 @@ local function finish_with_clang(toolchain, flags, arch, gcc_info)
 			toolchain:add("cxflags", "-isystem " .. paths[i])
 		end
 	end
-
-	toolchain:set("toolset", "cc", "clang")
-	toolchain:set("toolset", "cxx", "clang++")
-	toolchain:set("toolset", "ld", "clang++")
-	toolchain:set("toolset", "sh", "clang++")
-	toolchain:set("toolset", "mm", "clang")
-	toolchain:set("toolset", "mxx", "clang++")
-	toolchain:set("toolset", "as", "clang")
 end
 
 local function generate_ide_target(target, flags, using_clang, gcc_info)
