@@ -142,20 +142,21 @@ local function finish_with_clang(toolchain, flags, arch, gcc_info)
 	--add_flags(toolchain, {"--target=mipsel-none-elf", "-nostdlib", "-march=" .. arch}, {force = true})
 	-- that doesn't seem to allow the rest of the flags to be auto detected, so embed the flags into the command
 
-	toolchain:set("toolset", "cc", "clang --target=mipsel-none-elf -nostdlib -march=" .. arch)
-	toolchain:set("toolset", "cxx", "clang++ --target=mipsel-none-elf -nostdlib -march=" .. arch)
-	toolchain:set("toolset", "ld", "clang++ --target=mipsel-none-elf -nostdlib -march=" .. arch)
-	toolchain:set("toolset", "sh", "clang++ --target=mipsel-none-elf -nostdlib -march=" .. arch)
-	toolchain:set("toolset", "mm", "clang --target=mipsel-none-elf -nostdlib -march=" .. arch)
-	toolchain:set("toolset", "mxx", "clang++ --target=mipsel-none-elf -nostdlib -march=" .. arch)
-	toolchain:set("toolset", "as", "clang --target=mipsel-none-elf -nostdlib -march=" .. arch)
+	local forced_flags = "--target=mipsel-none-elf -nostdlib -march=" .. arch
+	if gcc_info then
+		forced_flags = forced_flags .. " -fno-integrated-as -B" .. gcc_info.prefix .. " -fuse-ld=bfd -Wl,--noinhibit-exec"
+	end
+
+	toolchain:set("toolset", "cc", "clang " .. forced_flags)
+	toolchain:set("toolset", "cxx", "clang++ " .. forced_flags)
+	toolchain:set("toolset", "ld", "clang++ " .. forced_flags)
+	toolchain:set("toolset", "sh", "clang++ " .. forced_flags)
+	toolchain:set("toolset", "mm", "clang " .. forced_flags)
+	toolchain:set("toolset", "mxx", "clang++ " .. forced_flags)
+	toolchain:set("toolset", "as", "clang " .. forced_flags)
 
 	add_flags(toolchain, flags)
-	if table.contains(toolchain:get("cxflags"), "-mabi=eabi") then
-		toolchain:add("asflags", {"-fdollars-in-identifiers", "-D$ta0=$8", "-D$ta1=$9", "-D$ta2=$10", "-D$ta3=$11"})
-	else
-		toolchain:add("asflags", {"-fdollars-in-identifiers", "-D$ta0=$12", "-D$ta1=$13", "-D$ta2=$14", "-D$ta3=$15"})
-	end
+	add_flags(toolchain, "-flto=none")
 
 	-- clang's freestanding support is poor, so make it use gcc's standard headers if available (cached)
 	-- TODO: try using the freestanding C++ STL and check if it needs a similar workaround
@@ -166,6 +167,10 @@ local function finish_with_clang(toolchain, flags, arch, gcc_info)
 		for i = 1, #paths do
 			toolchain:add("cxflags", "-isystem " .. paths[i])
 		end
+	elseif table.contains(toolchain:get("cxflags"), "-mabi=eabi") then
+		add_flags(toolchain, {"-fdollars-in-identifiers", "-D$ta0=$8", "-D$ta1=$9", "-D$ta2=$10", "-D$ta3=$11"})
+	else
+		add_flags(toolchain, {"-fdollars-in-identifiers", "-D$ta0=$12", "-D$ta1=$13", "-D$ta2=$14", "-D$ta3=$15"})
 	end
 end
 
@@ -323,14 +328,16 @@ function main(target)
 	if using_clang then
 		finish_with_clang(target, flags, is_project_generator and "mips1" or clang_arch, gcc_info)
 
+		target:set("policy", "build.optimization.lto", false)
+
 		if is_project_generator then
 			target:add("defines", "IDE")
 		else
 			if not warned_about_llvm then
 				if not gcc then
-					warn("using clang without gcc, you may face issues with the standard headers")
+					warn("using clang without gcc, this might not work")
 				end
-				warn("LLVM's support for MIPS-I is experimental, and performance will be worse!")
+				warn("LLVM's support for MIPS-I is experimental, performance will be worse, and LTO will be disabled!")
 				warned_about_llvm = true
 			end
 			print_for(target, "using clang, -march=" .. clang_arch)
