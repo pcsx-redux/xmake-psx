@@ -142,19 +142,21 @@ local function finish_with_clang(toolchain, flags, arch, gcc_info)
 	--add_flags(toolchain, {"--target=mipsel-none-elf", "-nostdlib", "-march=" .. arch}, {force = true})
 	-- that doesn't seem to allow the rest of the flags to be auto detected, so embed the flags into the command
 
-	local forced_flags = "--target=mipsel-none-elf -nostdlib -march=" .. arch
+	local forced_flags = {"--target=mipsel-none-elf", "-nostdlib", "-march=" .. arch, "-flto=none"}
 	if gcc_info then
-		forced_flags = forced_flags .. " -fno-integrated-as -B" .. gcc_info.prefix .. " -fuse-ld=bfd -Wl,--noinhibit-exec"
+		table.append(forced_flags, "-fno-integrated-as", "-B" .. gcc_info.prefix, "-fuse-ld=bfd", "-Wl,--noinhibit-exec")
 	end
 
-	toolchain:set("toolset", "cc", "clang " .. forced_flags)
-	toolchain:set("toolset", "cxx", "clang++ " .. forced_flags)
-	toolchain:set("toolset", "ld", "clang++ " .. forced_flags)
-	toolchain:set("toolset", "sh", "clang++ " .. forced_flags)
-	toolchain:set("toolset", "mm", "clang " .. forced_flags)
-	toolchain:set("toolset", "mxx", "clang++ " .. forced_flags)
-	toolchain:set("toolset", "as", "clang " .. forced_flags)
+	local forced_flags_str = table.concat(forced_flags, " ")
+	toolchain:set("toolset", "cc", "clang " .. forced_flags_str)
+	toolchain:set("toolset", "cxx", "clang++ " .. forced_flags_str)
+	toolchain:set("toolset", "ld", "clang++ " .. forced_flags_str)
+	toolchain:set("toolset", "sh", "clang++ " .. forced_flags_str)
+	toolchain:set("toolset", "mm", "clang " .. forced_flags_str)
+	toolchain:set("toolset", "mxx", "clang++ " .. forced_flags_str)
+	toolchain:set("toolset", "as", "clang " .. forced_flags_str)
 
+	add_flags(toolchain, forced_flags)
 	add_flags(toolchain, flags)
 	add_flags(toolchain, "-flto=none")
 
