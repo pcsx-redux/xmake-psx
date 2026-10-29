@@ -25,7 +25,7 @@ function main()
 			if target:kind() == "binary" and target:plat() == "psx" then
 				local elf = target:targetfile()
 				local gdb_port = get_config("gdb-port")
-				if gdb_port == "auto" or gdb_port == "" then
+				if gdb_port == "default" or gdb_port == "" then
 					gdb_port = "3333"
 				end
 				value = value .. zed_debug_pattern:format(gdb_port, name, gdb_port, elf)
